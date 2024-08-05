@@ -7,11 +7,14 @@ import io.fplpicks.application.service.PlayerGameweekDataParser
 import io.fplpicks.application.service.TeamDataParser
 import smile.data.DataFrame
 import smile.data.Tuple
+import smile.data.formula.Formula
 import smile.regression.RandomForest
 import smile.validation.CrossValidation
+import smile.validation.metric.RMSE
 import java.io.File
 import java.io.ObjectOutputStream
 import java.util.Properties
+import kotlin.math.sqrt
 
 class ModelTrainer {
     private lateinit var model: RandomForest
@@ -42,20 +45,49 @@ class ModelTrainer {
         // Create DataFrame
         val df = DataFrame.of(tuples)
 
-        // Perform cross-validation
-        val formula = smile.data.formula.Formula.lhs("points")
-        val cv = CrossValidation.regression(5, formula, df, RandomForest::fit)
+        val formula = Formula.lhs("points")
 
-        println("Cross-validation RMSE: $cv")
+        // Define hyperparameters to tune
+        val numTreesOptions = listOf(100, 200, 500)
+        val maxDepthOptions = listOf(10, 20, 30)
+        val maxNodesOptions = listOf(256, 512, 1024)
 
-        // Train the final model on all data
-        //val props = Properties()
-        //props.setProperty("smile.random_forest.trees", "500")
-        model = RandomForest.fit(formula, df)
-        println(model.metrics())
+        var bestModel: RandomForest? = null
+        var bestRMSE = Double.MAX_VALUE
 
-        // Print feature importance
-        val importance = model.importance()
+        // Perform grid search
+        for (numTrees in numTreesOptions) {
+            for (maxDepth in maxDepthOptions) {
+                for (maxNodes in maxNodesOptions) {
+                    val props = Properties().apply {
+                        setProperty("smile.random.forest.trees", numTrees.toString())
+                        setProperty("smile.random.forest.max.depth", maxDepth.toString())
+                        setProperty("smile.random.forest.max.nodes", maxNodes.toString())
+                    }
+
+                    // Perform cross-validation
+                    val cv = CrossValidation.regression(5, formula, df) { f, d ->
+                        RandomForest.fit(f, d, props)
+                    }
+
+                    val rmse = cv.avg.rmse
+                    println("RMSE for trees=$numTrees, depth=$maxDepth, nodes=$maxNodes: $rmse")
+
+                    if (rmse < bestRMSE) {
+                        bestRMSE = rmse
+                        bestModel = RandomForest.fit(formula, df, props)
+                    }
+                }
+            }
+        }
+
+        println("Best Cross-validation RMSE: $bestRMSE")
+
+        // Print best model metrics
+        println(bestModel?.metrics())
+
+        // Print feature importance for the best model
+        val importance = bestModel?.importance() ?: doubleArrayOf()
         val totalImportance = importance.sum()
         val normalizedImportance = importance.map { it / totalImportance }
         val featureNames = ModelConfig.featureNames()
@@ -63,12 +95,14 @@ class ModelTrainer {
             println("Importance of $name: ${normalizedImportance[index] * 100}%")
         }
 
+        // Save the best model
         val file = File("build/model/model.ser")
         if (file.parentFile.mkdirs() || file.parentFile.exists()) {
             file.outputStream().use {
-                ObjectOutputStream(it).writeObject(model)
+                ObjectOutputStream(it).writeObject(bestModel)
             }
         }
+        println("Model saved to ${file.absolutePath}")
     }
 }
 

@@ -2,8 +2,10 @@ package io.fplpicks.application.service.model.predict
 
 import io.fplpicks.adaptor.out.current.FetchFixtureSchedule
 import io.fplpicks.adaptor.out.current.FetchRawCurrentFPLData
+import io.fplpicks.adaptor.out.predictions.TeamOfTheWeekPredictionRepository
 import io.fplpicks.application.model.PlayerGameweekFeatures
 import io.fplpicks.application.model.PlayerPrediction
+import io.fplpicks.application.port.out.PredictionStore
 import io.fplpicks.application.service.ModelConfig
 import io.fplpicks.application.service.PlayerGameweekDataParser
 import io.fplpicks.application.service.TeamDataParser
@@ -15,7 +17,7 @@ import java.io.FileInputStream
 import java.io.ObjectInputStream
 import kotlin.math.sqrt
 
-class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData) {
+class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeekPredictionStore: PredictionStore) {
     suspend fun allPredictionsForUpcomingGameweek() {
 
         val fplData = fetchFPLData.fetchCurrentData()
@@ -115,9 +117,13 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData) {
 
         val optimumSquad = SquadSelectorOptimiser(playerToPrediction).selectBestSquad()
         println(optimumSquad)
+
+        val gameweek = "2024-$nextEventKey"
+        // store squad
+        teamOfTheWeekPredictionStore.store(gameweek, optimumSquad)
     }
 }
 
 suspend fun main() {
-    ModelPredictor(FetchRawCurrentFPLData()).allPredictionsForUpcomingGameweek()
+    ModelPredictor(FetchRawCurrentFPLData(), TeamOfTheWeekPredictionRepository()).allPredictionsForUpcomingGameweek()
 }

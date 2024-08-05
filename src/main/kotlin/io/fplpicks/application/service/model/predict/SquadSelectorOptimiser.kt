@@ -17,6 +17,14 @@ class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPredictio
         Formation(5, 4, 1),
         Formation(5, 3, 2)
     )
+    private val positionCounts = mutableMapOf(
+        "GKP" to 2,
+        "DEF" to 5,
+        "MID" to 5,
+        "FWD" to 3
+    )
+
+    private val maximumNumberFromSameTeam = 3
 
     fun selectBestSquad(): Squad {
         var population = initialisePopulation()
@@ -37,6 +45,7 @@ class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPredictio
         do {
             val formation = possibleFormations.random(random)
             val players = mutableListOf<PlayerPrediction>()
+
             val positionCounts = mutableMapOf(
                 "GKP" to 2,
                 "DEF" to 5,
@@ -79,7 +88,7 @@ class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPredictio
                 .sortedByDescending { it.pointsTotalUpcomingGWs }
                 .take(count)
             startingPlayers.addAll(positionPlayers)
-            benchPlayers.addAll(positionPlayers)
+            benchPlayers.removeAll(positionPlayers)
         }
         return startingPlayers to benchPlayers
     }
@@ -134,7 +143,13 @@ class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPredictio
             val allPlayers = (parent1.startingPlayers + parent1.benchPlayers +
                     parent2.startingPlayers + parent2.benchPlayers).distinct()
 
-            val (startingPlayers, benchPlayers) = assignPlayersToPositions(allPlayers.shuffled(random).take(15), formation)
+            // Build crossover squad
+            val crossover = allPlayers.shuffled()
+            val validCrossover = positionCounts.entries.flatMap { (position, count) ->
+                crossover.filter { it.position == position }.take(count)
+            }
+
+            val (startingPlayers, benchPlayers) = assignPlayersToPositions(validCrossover, formation)
             child = createSquad(startingPlayers, benchPlayers, formation)
         } while (!child.isValid)
         return child
@@ -177,6 +192,7 @@ data class Squad(
                 startingPlayers.count { it.position == "DEF" } + benchPlayers.count { it.position == "DEF" } == 5 &&
                 startingPlayers.count { it.position == "MID" } + benchPlayers.count { it.position == "MID" } == 5 &&
                 startingPlayers.count { it.position == "FWD" } + benchPlayers.count { it.position == "FWD" } == 3 &&
+                (startingPlayers + benchPlayers).groupingBy { it.team }.eachCount().values.find { it > 3 } == null &&
                 totalCost <= 1000
 
     companion object {

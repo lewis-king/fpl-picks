@@ -34,6 +34,8 @@ class TeamOfTheWeekPredictionRepository: PredictionStore {
             mapOf(
                 "name" to AttributeValue.S(name),
                 "position" to AttributeValue.S(position),
+                "image" to AttributeValue.S(image),
+                "team" to AttributeValue.S(team),
                 "value" to AttributeValue.N(value.toString()),
                 "predictedPointsThisGW" to AttributeValue.N(predictedPointsThisGW.toString()),
                 "predictedPointsGWPlus1" to AttributeValue.N(predictedPointsGWPlus1.toString()),
@@ -43,7 +45,6 @@ class TeamOfTheWeekPredictionRepository: PredictionStore {
                 "pointsPerValue" to AttributeValue.N(pointsPerValue.toString()),
                 "pointsTotalUpcomingGWs" to AttributeValue.N(pointsTotalUpcomingGWs.toString()),
                 "pointsAvgUpcomingGWs" to AttributeValue.N(pointsAvgUpcomingGWs.toString()),
-                "team" to AttributeValue.S(team)
             )
         )
     }

@@ -88,6 +88,7 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
 
             PlayerPrediction(
                 name = "${playerToData[it.first]!!.firstName} ${playerToData[it.first]!!.secondName}",
+                image = playerToData[it.first]!!.photo.removeSuffix(".jpg"),
                 position = when (playerToData[it.first]!!.elementType) {
                     1 -> "GKP"
                     2 -> "DEF"
@@ -95,6 +96,7 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
                     4 -> "FWD"
                     else -> "GKP"
                 },
+                team = playerToData[it.first]!!.team.toString(),
                 value = playerToData[it.first]!!.nowCost.toDouble(),
                 predictedPointsThisGW = pointsPredictions[0],
                 predictedPointsGWPlus1 = pointsPredictions[1],
@@ -104,7 +106,6 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
                 pointsPerValue = (pointsPredictions[0] + pointsPredictions[1] + pointsPredictions[2] + pointsPredictions[3] + pointsPredictions[4]) / playerToData[it.first]!!.nowCost.toDouble(),
                 pointsTotalUpcomingGWs = pointsPredictions[0] + pointsPredictions[1] + pointsPredictions[2] + pointsPredictions[3] + pointsPredictions[4],
                 pointsAvgUpcomingGWs = (pointsPredictions[0] + pointsPredictions[1] + pointsPredictions[2] + pointsPredictions[3] + pointsPredictions[4]) / 5,
-                team = playerToData[it.first]!!.team.toString()
             )
         }
 

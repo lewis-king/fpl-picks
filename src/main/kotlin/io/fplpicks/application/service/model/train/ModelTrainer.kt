@@ -13,6 +13,7 @@ import smile.validation.CrossValidation
 import smile.validation.metric.RMSE
 import java.io.File
 import java.io.ObjectOutputStream
+import java.io.PrintWriter
 import java.util.Properties
 import kotlin.math.sqrt
 
@@ -102,6 +103,14 @@ class ModelTrainer {
                 ObjectOutputStream(it).writeObject(bestModel)
             }
         }
+        // Save the best model's RMSE
+        val metaFile = File("build/model/meta.txt")
+        metaFile.outputStream().use { outputStream ->
+            PrintWriter(outputStream).use { writer ->
+                writer.println(bestModel?.metrics())
+            }
+        }
+
         println("Model saved to ${file.absolutePath}")
     }
 }

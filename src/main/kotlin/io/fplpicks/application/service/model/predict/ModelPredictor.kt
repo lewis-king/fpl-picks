@@ -11,6 +11,7 @@ import io.fplpicks.application.service.PlayerGameweekDataParser
 import io.fplpicks.application.service.TeamDataParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 import smile.data.Tuple
 import smile.regression.RandomForest
 import java.io.FileInputStream
@@ -117,9 +118,9 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
         println("captain: $captainName")*/
 
         val optimumSquad = SquadSelectorOptimiser(playerToPrediction).selectBestSquad()
-        println(optimumSquad)
+        //println(optimumSquad)
 
-        val gameweek = "2024-$nextEventKey"
+        val gameweek = "2024-$nextEventKey-${Clock.System.now().epochSeconds}"
         // store squad
         teamOfTheWeekPredictionStore.store(gameweek, optimumSquad)
     }

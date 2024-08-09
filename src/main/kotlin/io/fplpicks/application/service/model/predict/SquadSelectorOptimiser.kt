@@ -1,6 +1,9 @@
 package io.fplpicks.application.service.model.predict
 
 import io.fplpicks.application.model.PlayerPrediction
+import io.fplpicks.application.service.model.predict.Squad.Companion.BENCH_PLAYER_CHANCE_OF_BEING_REQUIRED
+import io.fplpicks.application.service.model.predict.Squad.Companion.BENCH_PLAYER_CHANCE_OF_PLAYING
+import io.fplpicks.application.service.model.predict.Squad.Companion.DISCOUNT_FACTOR
 import kotlin.random.Random
 
 class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPrediction>,
@@ -107,7 +110,7 @@ class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPredictio
         startingPlayers: List<PlayerPrediction>,
         benchPlayers: List<PlayerPrediction>
     ): Double {
-        return startingPlayers.sumOf { it.pointsTotalUpcomingGWs } + benchPlayers.sumOf { it.pointsTotalUpcomingGWs * Squad.BENCH_WEIGHT }
+        return startingPlayers.sumOf { it.pointsTotalUpcomingGWs } + benchPlayers.sumOf { BENCH_PLAYER_CHANCE_OF_PLAYING * it.pointsTotalUpcomingGWs * BENCH_PLAYER_CHANCE_OF_BEING_REQUIRED * DISCOUNT_FACTOR }
     }
 
     private fun evolvePopulation(population: List<Squad>): List<Squad> {
@@ -197,6 +200,9 @@ data class Squad(
 
     companion object {
         const val BENCH_WEIGHT = 1.0 / 9.0
+        const val BENCH_PLAYER_CHANCE_OF_PLAYING = 0.8
+        const val BENCH_PLAYER_CHANCE_OF_BEING_REQUIRED = 0.2
+        const val DISCOUNT_FACTOR = 0.25
     }
 }
 

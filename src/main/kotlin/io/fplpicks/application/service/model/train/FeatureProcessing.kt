@@ -20,10 +20,10 @@ class FeatureProcessing {
             }
     }
 
-    fun createFeature(playerName: String,
-                      previousGameweeks: List<PlayerGameweekData>,
-                      currentGameweek: PlayerGameweekData,
-                      futureGameweeks: List<PlayerGameweekData>): PlayerGameweekFeatures {
+    private fun createFeature(playerName: String,
+                              previousGameweeks: List<PlayerGameweekData>,
+                              currentGameweek: PlayerGameweekData,
+                              futureGameweeks: List<PlayerGameweekData>): PlayerGameweekFeatures {
 
         val points = previousGameweeks.map { it.totalPoints }
         val averagePointsToDate = points.average()
@@ -40,9 +40,17 @@ class FeatureProcessing {
             last3GamesOpponentStrengthAvg = previousGameweeks.takeLast(3).map { it.opponentTeamStrength }.average(),
             last5GamesPointsAvg = previousGameweeks.takeLast(5).map { it.totalPoints }.average(),
             last5GamesOpponentStrengthAvg = previousGameweeks.takeLast(5).map { it.opponentTeamStrength }.average(),
+            last5GamesCleansSheetsAvg = previousGameweeks.takeLast(5).map { it.cleanSheets }.average(),
+            last5GamesGoalsScoredAvg = previousGameweeks.takeLast(5).map { it.goalsScored }.average(),
+            last5GamesAssistsAvg = previousGameweeks.takeLast(5).map { it.assists }.average(),
+            last5GamesBonusPointsAvg = previousGameweeks.takeLast(5).map { it.bonus }.average(),
             seasonAvgPointsToDate = averagePointsToDate,
             seasonAvgMinutesPlayed = previousGameweeks.map { it.minutes }.average(),
             seasonPointsStdDev = seasonPointsStdDev,
+            seasonAvgCleanSheets = previousGameweeks.map { it.cleanSheets }.average(),
+            seasonAvgGoalsScored = previousGameweeks.map { it.goalsScored }.average(),
+            seasonAvgAssists = previousGameweeks.map { it.assists }.average(),
+            seasonAvgBonusPointsAvg = previousGameweeks.map { it.bonus }.average(),
             isHome = currentGameweek.wasHome,
             points = currentGameweek.totalPoints.toDouble()
         )

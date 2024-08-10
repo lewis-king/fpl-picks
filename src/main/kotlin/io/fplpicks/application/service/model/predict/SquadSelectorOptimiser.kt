@@ -4,12 +4,17 @@ import io.fplpicks.application.model.PlayerPrediction
 import io.fplpicks.application.service.model.predict.Squad.Companion.BENCH_PLAYER_CHANCE_OF_BEING_REQUIRED
 import io.fplpicks.application.service.model.predict.Squad.Companion.BENCH_PLAYER_CHANCE_OF_PLAYING
 import io.fplpicks.application.service.model.predict.Squad.Companion.DISCOUNT_FACTOR
+import java.io.InputStreamReader
 import kotlin.random.Random
 
+val playerBlocklist = {}.javaClass.getResourceAsStream("/player_selection_blocklist.txt")
+    ?.let { InputStreamReader(it) }?.readLines()?.associateBy { it }
+
 class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPrediction>,
-                             private val populationSize: Int = 1000,
+                             private val populationSize: Int = 10000,
                              private val budget: Double = 1000.0,
-                             private val generations: Int = 100) {
+                             private val generations: Int = 1000) {
+
 
     private val random = Random.Default
     private val possibleFormations = listOf(
@@ -196,7 +201,9 @@ data class Squad(
                 startingPlayers.count { it.position == "MID" } + benchPlayers.count { it.position == "MID" } == 5 &&
                 startingPlayers.count { it.position == "FWD" } + benchPlayers.count { it.position == "FWD" } == 3 &&
                 (startingPlayers + benchPlayers).groupingBy { it.team }.eachCount().values.find { it > 3 } == null &&
-                totalCost <= 1000
+                totalCost <= 1000 &&
+                startingPlayers.none { playerBlocklist?.get(it.name) != null } &&
+                benchPlayers.none { playerBlocklist?.get(it.name) != null }
 
     companion object {
         const val BENCH_WEIGHT = 1.0 / 9.0

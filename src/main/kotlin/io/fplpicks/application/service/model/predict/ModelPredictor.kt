@@ -55,8 +55,16 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
                     last3GamesOpponentStrengthAvg = form[key]?.takeLast(3)?.map { it.opponentTeamStrength }?.average() ?: 0.0,
                     last5GamesPointsAvg = form[key]?.takeLast(5)?.map { it.totalPoints }?.average() ?: 0.0,
                     last5GamesOpponentStrengthAvg = form[key]?.takeLast(5)?.map { it.opponentTeamStrength }?.average() ?: 0.0,
+                    last5GamesCleansSheetsAvg = form[key]?.takeLast(5)?.map { it.cleanSheets }?.average() ?: 0.0,
+                    last5GamesGoalsScoredAvg = form[key]?.takeLast(5)?.map { it.goalsScored }?.average() ?: 0.0,
+                    last5GamesAssistsAvg = form[key]?.takeLast(5)?.map { it.assists }?.average() ?: 0.0,
+                    last5GamesBonusPointsAvg = form[key]?.takeLast(5)?.map { it.assists }?.average() ?: 0.0,
                     seasonAvgPointsToDate = form[key]?.map { it.totalPoints }?.average() ?: 0.0,
                     seasonAvgMinutesPlayed = form[key]?.map { it.minutes }?.average() ?: 0.0,
+                    seasonAvgCleanSheets = form[key]?.map { it.cleanSheets }?.average() ?: 0.0,
+                    seasonAvgGoalsScored = form[key]?.map { it.goalsScored }?.average() ?: 0.0,
+                    seasonAvgAssists = form[key]?.map { it.assists }?.average() ?: 0.0,
+                    seasonAvgBonusPointsAvg = form[key]?.map { it.assists }?.average() ?: 0.0,
                     seasonPointsStdDev = seasonPointsStdDev,
                     isHome = playerIsHome ?: false,
                     points = 0.0
@@ -120,9 +128,10 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
         val optimumSquad = SquadSelectorOptimiser(playerToPrediction).selectBestSquad()
         //println(optimumSquad)
 
-        val gameweek = "2024-$nextEventKey-${Clock.System.now().epochSeconds}"
+        val timestamp = Clock.System.now()
+        val gameweek = "2024-$nextEventKey"
         // store squad
-        teamOfTheWeekPredictionStore.store(gameweek, optimumSquad)
+        teamOfTheWeekPredictionStore.store(gameweek, optimumSquad, timestamp)
     }
 }
 

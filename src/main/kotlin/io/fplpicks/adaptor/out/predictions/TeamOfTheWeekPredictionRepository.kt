@@ -6,12 +6,14 @@ import aws.sdk.kotlin.services.dynamodb.model.PutItemRequest
 import io.fplpicks.application.model.PlayerPrediction
 import io.fplpicks.application.port.out.PredictionStore
 import io.fplpicks.application.service.model.predict.Squad
+import kotlinx.datetime.Instant
 
 class TeamOfTheWeekPredictionRepository: PredictionStore {
-    override suspend fun store(gameweek: String, squad: Squad) {
+    override suspend fun store(gameweek: String, squad: Squad, timestamp: Instant) {
 
         val item = mapOf(
             "gameweek" to AttributeValue.S(gameweek),
+            "timestamp" to AttributeValue.N(timestamp.toEpochMilliseconds().toString()),
             "startingPlayers" to AttributeValue.L(squad.startingPlayers.map { it.toAttributeValue() }),
             "benchPlayers" to AttributeValue.L(squad.benchPlayers.map { it.toAttributeValue() }),
             "formation" to AttributeValue.S(squad.formation.toString()), // Assuming Formation is an enum or has a meaningful toString()

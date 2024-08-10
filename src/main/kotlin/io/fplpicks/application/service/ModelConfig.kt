@@ -19,8 +19,13 @@ class ModelConfig {
             "last2GamesPointsAvg",
             "last3GamesPointsAvg",
             "last5GamesPointsAvg",
+            "last5GamesBonusPointsAvg",
             "seasonAvgPointsToDate",
             "seasonAvgMinutesPlayed",
+            "seasonAvgCleanSheets",
+            "seasonAvgGoalsScored",
+            "seasonAvgAssists",
+            "seasonAvgBonusPointsAvg",
             "seasonPointsStdDev"
         )
 
@@ -35,8 +40,16 @@ class ModelConfig {
             features.last2GamesPointsAvg,
             features.last3GamesPointsAvg,
             features.last5GamesPointsAvg,
+            features.last5GamesCleansSheetsAvg,
+            features.last5GamesGoalsScoredAvg,
+            features.last5GamesAssistsAvg,
+            features.last5GamesBonusPointsAvg,
             features.seasonAvgPointsToDate,
             features.seasonAvgMinutesPlayed,
+            features.seasonAvgCleanSheets,
+            features.seasonAvgGoalsScored,
+            features.seasonAvgAssists,
+            features.seasonAvgBonusPointsAvg,
             features.seasonPointsStdDev,
             features.points
         )
@@ -52,8 +65,16 @@ class ModelConfig {
             StructField("last2GamesPointsAvg", DataTypes.DoubleType),
             StructField("last3GamesPointsAvg", DataTypes.DoubleType),
             StructField("last5GamesPointsAvg", DataTypes.DoubleType),
+            StructField("last5GamesCleansSheetsAvg", DataTypes.DoubleType),
+            StructField("last5GamesGoalsScoredAvg", DataTypes.DoubleType),
+            StructField("last5GamesAssistsAvg", DataTypes.DoubleType),
+            StructField("last5GamesBonusPointsAvg", DataTypes.DoubleType),
             StructField("seasonAvgPointsToDate", DataTypes.DoubleType),
             StructField("seasonAvgMinutesPlayed", DataTypes.DoubleType),
+            StructField("seasonAvgCleanSheets", DataTypes.DoubleType),
+            StructField("seasonAvgGoalsScored", DataTypes.DoubleType),
+            StructField("seasonAvgAssists", DataTypes.DoubleType),
+            StructField("seasonAvgBonusPointsAvg", DataTypes.DoubleType),
             StructField("seasonPointsStdDev", DataTypes.DoubleType),
             StructField("points", DataTypes.DoubleType)
         )

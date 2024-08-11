@@ -35,6 +35,7 @@ class TeamOfTheWeekPredictionRepository: PredictionStore {
         return AttributeValue.M(
             mapOf(
                 "name" to AttributeValue.S(name),
+                "commonName" to AttributeValue.S(commonName),
                 "position" to AttributeValue.S(position),
                 "image" to AttributeValue.S(image),
                 "team" to AttributeValue.S(team),

@@ -41,7 +41,9 @@ class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPredictio
             population = evolvePopulation(population)
         }
 
-        return population.maxBy { it.weightedTotalPredictedPoints }
+        val topSquad = population.maxBy { it.weightedTotalPredictedPoints }
+        val sortedBenchPlayers = topSquad.benchPlayers.sortedBy { it.predictedPointsThisGW }
+        return topSquad.copy(benchPlayers = sortedBenchPlayers)
     }
 
     private fun initialisePopulation(): List<Squad> {

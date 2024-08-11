@@ -97,6 +97,7 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
 
             PlayerPrediction(
                 name = "${playerToData[it.first]!!.firstName} ${playerToData[it.first]!!.secondName}",
+                commonName = playerToData[it.first]!!.webName,
                 image = playerToData[it.first]!!.photo.removeSuffix(".jpg"),
                 position = when (playerToData[it.first]!!.elementType) {
                     1 -> "GKP"
@@ -124,6 +125,7 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
         println("bench value: " + optimumSquad.second.sumOf { it.value })
         val captainName = optimumSquad.first.maxBy { it.predictedPointsThisGW }.name
         println("captain: $captainName")*/
+        println(playerToPrediction.sortedByDescending { it.pointsTotalUpcomingGWs })
 
         val optimumSquad = SquadSelectorOptimiser(playerToPrediction).selectBestSquad()
         //println(optimumSquad)

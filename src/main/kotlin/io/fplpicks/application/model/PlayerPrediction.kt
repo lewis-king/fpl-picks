@@ -2,6 +2,7 @@ package io.fplpicks.application.model
 
 data class PlayerPrediction(
     val name: String,
+    val commonName: String,
     val image: String,
     val position: String,
     val team: String,

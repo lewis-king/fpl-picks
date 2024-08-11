@@ -2,6 +2,7 @@ package io.fplpicks.application.service.model.predict
 
 import io.fplpicks.adaptor.out.current.FetchFixtureSchedule
 import io.fplpicks.adaptor.out.current.FetchRawCurrentFPLData
+import io.fplpicks.adaptor.out.lineups.FetchPredictedLineups
 import io.fplpicks.adaptor.out.predictions.TeamOfTheWeekPredictionRepository
 import io.fplpicks.application.model.PlayerGameweekFeatures
 import io.fplpicks.application.model.PlayerPrediction
@@ -72,7 +73,7 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
             }
 
             key to playerGameweekFeaturesList
-        }
+        }.filter { it.second.sumOf { it.seasonAvgMinutesPlayed } > 15.0 }
 
         println(features.size)
 
@@ -127,7 +128,9 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
         println("captain: $captainName")*/
         println(playerToPrediction.sortedByDescending { it.pointsTotalUpcomingGWs })
 
-        val optimumSquad = SquadSelectorOptimiser(playerToPrediction).selectBestSquad()
+        val expectedLineups = FetchPredictedLineups().fetch()
+
+        val optimumSquad = SquadSelectorOptimiser(playerPredictions = playerToPrediction, expectedLineups = expectedLineups).selectBestSquad()
         //println(optimumSquad)
 
         val timestamp = Clock.System.now()

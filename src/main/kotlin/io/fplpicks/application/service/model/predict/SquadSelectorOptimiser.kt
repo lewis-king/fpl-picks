@@ -10,10 +10,13 @@ import kotlin.random.Random
 val playerBlocklist = {}.javaClass.getResourceAsStream("/player_selection_blocklist.txt")
     ?.let { InputStreamReader(it) }?.readLines()?.associateBy { it }
 
-class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPrediction>,
-                             private val populationSize: Int = 10000,
-                             private val budget: Double = 1000.0,
-                             private val generations: Int = 1000) {
+class SquadSelectorOptimiser(
+    private val playerPredictions: List<PlayerPrediction>,
+    private val populationSize: Int = 10000,
+    private val budget: Double = 1000.0,
+    private val generations: Int = 1000,
+    private val expectedLineups: Map<String, String>
+) {
 
 
     private val random = Random.Default
@@ -64,7 +67,9 @@ class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPredictio
             )
 
             while (players.size < 15) {
-                val player = playerPredictions.random(random)
+                val player = playerPredictions
+                    .filter { expectedLineups[it.commonName] != null && expectedLineups[it.commonName] == "STARTING" }
+                    .random(random)
                 if (positionCounts[player.position]!! > 0 && !players.contains(player)) {
                     players.add(player)
                     positionCounts[player.position] = positionCounts[player.position]!! - 1
@@ -173,7 +178,9 @@ class SquadSelectorOptimiser(private val playerPredictions: List<PlayerPredictio
             val allSquadPlayers = squad.startingPlayers + squad.benchPlayers
             val positionToMutate = listOf("GKP", "DEF", "MID", "FWD").random(random)
             val playerToReplace = allSquadPlayers.filter { it.position == positionToMutate }.random(random)
-            val newPlayer = playerPredictions.filter { it.position == positionToMutate && it !in allSquadPlayers }.random(random)
+            val newPlayer = playerPredictions
+                .filter { expectedLineups[it.commonName] != null && expectedLineups[it.commonName] == "STARTING" }
+                .filter { it.position == positionToMutate && it !in allSquadPlayers }.random(random)
 
             val newPlayers = allSquadPlayers.map { if (it == playerToReplace) newPlayer else it }
             val (startingPlayers, benchPlayers) = assignPlayersToPositions(newPlayers, squad.formation)
@@ -189,7 +196,7 @@ data class Squad(
     val benchPlayers: List<PlayerPrediction>,
     val formation: Formation,
     val totalCost: Double,
-    val weightedTotalPredictedPoints: Double
+    val weightedTotalPredictedPoints: Double,
 ) {
     val isValid: Boolean
         get() = startingPlayers.size == 11 &&

@@ -8,6 +8,7 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 
 class FetchFixtureSchedule {
@@ -27,6 +28,6 @@ class FetchFixtureSchedule {
     suspend fun fetchUpcomingFixtures(): List<FPLFixture> {
         val response: HttpResponse = client.get(url)
         val fplFixtures = response.body<List<FPLFixture>>()
-        return fplFixtures
+        return fplFixtures.filter { it.kickOffTime > Clock.System.now() }
     }
 }

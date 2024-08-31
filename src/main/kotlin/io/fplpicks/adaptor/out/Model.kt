@@ -1,5 +1,6 @@
 package io.fplpicks.adaptor.out
 
+import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -14,6 +15,8 @@ data class FPLFixture(
     val teamA: Int,
     @SerialName("team_a_difficulty")
     val teamADifficulty: Int,
+    @SerialName("kickoff_time")
+    val kickOffTime: Instant
 )
 
 @Serializable
@@ -67,7 +70,7 @@ data class RawPlayer(
     @SerialName("cost_change_start_fall") val costChangeStartFall: Int,
     @SerialName("dreamteam_count") val dreamteamCount: Int,
     @SerialName("element_type") val elementType: Int,
-    @SerialName("ep_next") val epNext: String,
+    @SerialName("ep_next") val epNext: String?,
     @SerialName("ep_this") val epThis: String?,
     @SerialName("event_points") val eventPoints: Int,
     @SerialName("first_name") val firstName: String,
@@ -116,14 +119,14 @@ data class RawPlayer(
     @SerialName("expected_assists") val expectedAssists: String,
     @SerialName("expected_goal_involvements") val expectedGoalInvolvements: String,
     @SerialName("expected_goals_conceded") val expectedGoalsConceded: String,
-    @SerialName("influence_rank") val influenceRank: Int,
-    @SerialName("influence_rank_type") val influenceRankType: Int,
-    @SerialName("creativity_rank") val creativityRank: Int,
-    @SerialName("creativity_rank_type") val creativityRankType: Int,
-    @SerialName("threat_rank") val threatRank: Int,
-    @SerialName("threat_rank_type") val threatRankType: Int,
-    @SerialName("ict_index_rank") val ictIndexRank: Int,
-    @SerialName("ict_index_rank_type") val ictIndexRankType: Int,
+    @SerialName("influence_rank") val influenceRank: String?,
+    @SerialName("influence_rank_type") val influenceRankType: String?,
+    @SerialName("creativity_rank") val creativityRank: String?,
+    @SerialName("creativity_rank_type") val creativityRankType: String?,
+    @SerialName("threat_rank") val threatRank: String?,
+    @SerialName("threat_rank_type") val threatRankType: String?,
+    @SerialName("ict_index_rank") val ictIndexRank: String?,
+    @SerialName("ict_index_rank_type") val ictIndexRankType: String?,
     @SerialName("corners_and_indirect_freekicks_order") val cornersAndIndirectFreekicksOrder: Int?,
     @SerialName("corners_and_indirect_freekicks_text") val cornersAndIndirectFreekicksText: String,
     @SerialName("direct_freekicks_order") val directFreekicksOrder: Int?,
@@ -136,14 +139,14 @@ data class RawPlayer(
     @SerialName("expected_goal_involvements_per_90") val expectedGoalInvolvementsPer90: Double,
     @SerialName("expected_goals_conceded_per_90") val expectedGoalsConcededPer90: Double,
     @SerialName("goals_conceded_per_90") val goalsConcededPer90: Double,
-    @SerialName("now_cost_rank") val nowCostRank: Int,
-    @SerialName("now_cost_rank_type") val nowCostRankType: Int,
-    @SerialName("form_rank") val formRank: Int,
-    @SerialName("form_rank_type") val formRankType: Int,
-    @SerialName("points_per_game_rank") val pointsPerGameRank: Int,
-    @SerialName("points_per_game_rank_type") val pointsPerGameRankType: Int,
-    @SerialName("selected_rank") val selectedRank: Int,
-    @SerialName("selected_rank_type") val selectedRankType: Int,
+    @SerialName("now_cost_rank") val nowCostRank: String?,
+    @SerialName("now_cost_rank_type") val nowCostRankType: String?,
+    @SerialName("form_rank") val formRank: String?,
+    @SerialName("form_rank_type") val formRankType: String?,
+    @SerialName("points_per_game_rank") val pointsPerGameRank: String?,
+    @SerialName("points_per_game_rank_type") val pointsPerGameRankType: String?,
+    @SerialName("selected_rank") val selectedRank: String?,
+    @SerialName("selected_rank_type") val selectedRankType: String?,
     @SerialName("starts_per_90") val startsPer90: Double,
     @SerialName("clean_sheets_per_90") val cleanSheetsPer90: Double
 )

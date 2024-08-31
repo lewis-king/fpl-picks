@@ -19,14 +19,18 @@ class ModelConfig {
             "last2GamesPointsAvg",
             "last3GamesPointsAvg",
             "last5GamesPointsAvg",
+            "last5GamesPointsExponentialMovingAverage",
             "last5GamesBonusPointsAvg",
+            "last5GamesFormTrend",
             "seasonAvgPointsToDate",
             "seasonAvgMinutesPlayed",
             "seasonAvgCleanSheets",
             "seasonAvgGoalsScored",
             "seasonAvgAssists",
             "seasonAvgBonusPointsAvg",
-            "seasonPointsStdDev"
+            "seasonPointsStdDev",
+            "seasonConsistencySocre",
+            "homeAwayPointsDiff"
         )
 
         fun featureValues(features: PlayerGameweekFeatures): DoubleArray = doubleArrayOf(
@@ -40,10 +44,12 @@ class ModelConfig {
             features.last2GamesPointsAvg,
             features.last3GamesPointsAvg,
             features.last5GamesPointsAvg,
+            features.last5GamesPointsExponentialMovingAverage,
             features.last5GamesCleansSheetsAvg,
             features.last5GamesGoalsScoredAvg,
             features.last5GamesAssistsAvg,
             features.last5GamesBonusPointsAvg,
+            features.last5GamesFormTrend,
             features.seasonAvgPointsToDate,
             features.seasonAvgMinutesPlayed,
             features.seasonAvgCleanSheets,
@@ -51,6 +57,8 @@ class ModelConfig {
             features.seasonAvgAssists,
             features.seasonAvgBonusPointsAvg,
             features.seasonPointsStdDev,
+            features.seasonConsistencyScore,
+            features.homeAwayPointsDiff,
             features.points
         )
 
@@ -65,10 +73,12 @@ class ModelConfig {
             StructField("last2GamesPointsAvg", DataTypes.DoubleType),
             StructField("last3GamesPointsAvg", DataTypes.DoubleType),
             StructField("last5GamesPointsAvg", DataTypes.DoubleType),
+            StructField("last5GamesPointsExponentialMovingAverage", DataTypes.DoubleType),
             StructField("last5GamesCleansSheetsAvg", DataTypes.DoubleType),
             StructField("last5GamesGoalsScoredAvg", DataTypes.DoubleType),
             StructField("last5GamesAssistsAvg", DataTypes.DoubleType),
             StructField("last5GamesBonusPointsAvg", DataTypes.DoubleType),
+            StructField("last5GamesFormTrend", DataTypes.DoubleType),
             StructField("seasonAvgPointsToDate", DataTypes.DoubleType),
             StructField("seasonAvgMinutesPlayed", DataTypes.DoubleType),
             StructField("seasonAvgCleanSheets", DataTypes.DoubleType),
@@ -76,6 +86,8 @@ class ModelConfig {
             StructField("seasonAvgAssists", DataTypes.DoubleType),
             StructField("seasonAvgBonusPointsAvg", DataTypes.DoubleType),
             StructField("seasonPointsStdDev", DataTypes.DoubleType),
+            StructField("seasonConsistencyScore", DataTypes.DoubleType),
+            StructField("homeAwayPointsDiff", DataTypes.DoubleType),
             StructField("points", DataTypes.DoubleType)
         )
     }

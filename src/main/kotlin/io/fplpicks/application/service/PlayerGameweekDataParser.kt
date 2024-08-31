@@ -5,14 +5,32 @@ import io.fplpicks.application.model.Team
 import kotlinx.datetime.Instant
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
+import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.net.URL
 
 class PlayerGameweekDataParser {
-    fun parseFromResource(resourcePath: String, teams: List<Team>): List<PlayerGameweekData> {
-        val inputStream = this.javaClass.getResourceAsStream(resourcePath)
-        requireNotNull(inputStream) { "Resource not found: $resourcePath" }
+    fun parseFromURL(url: String, teams: List<Team>): List<PlayerGameweekData> {
+        val csvContent = URL(url).openStream().use { stream ->
+            BufferedReader(InputStreamReader(stream)).use { reader ->
+                reader.readText()
+            }
+        }
+        return parseCSVContent(csvContent, teams)
+    }
 
-        val reader = InputStreamReader(inputStream)
+    fun parseFromResource(resourcePath: String, teams: List<Team>): List<PlayerGameweekData> {
+        val inputStream = this::class.java.getResourceAsStream(resourcePath)
+        requireNotNull(inputStream) { "Resource not found: $resourcePath" }
+        val csvContent = inputStream.use { stream ->
+            BufferedReader(InputStreamReader(stream)).use { reader ->
+                reader.readText()
+            }
+        }
+        return parseCSVContent(csvContent, teams)
+    }
+
+    private fun parseCSVContent(csvContent: String, teams: List<Team>): List<PlayerGameweekData> {
         val csvFormat = CSVFormat.Builder.create(CSVFormat.DEFAULT)
             .setHeader()
             .setSkipHeaderRecord(true)
@@ -21,7 +39,7 @@ class PlayerGameweekDataParser {
             .setAllowMissingColumnNames(true)
             .build()
 
-        val csvParser = CSVParser(reader, csvFormat)
+        val csvParser = CSVParser.parse(csvContent, csvFormat)
 
         val teamIdToTeam = teams.associateBy { it.id }
         val teamNameToTeam = teams.associateBy { it.name }

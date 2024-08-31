@@ -2,6 +2,9 @@ package io.fplpicks.application.service.model.train
 
 import io.fplpicks.application.model.PlayerGameweekData
 import io.fplpicks.application.model.PlayerGameweekFeatures
+import io.fplpicks.application.service.Statistics
+import io.fplpicks.application.service.model.predict.Point
+import kotlin.math.pow
 import kotlin.math.sqrt
 
 class FeatureProcessing {
@@ -30,6 +33,27 @@ class FeatureProcessing {
         val variance = points.map { (it - averagePointsToDate) * (it - averagePointsToDate) }.average()
         val seasonPointsStdDev = sqrt(variance)
 
+        val pointedPoints = previousGameweeks.takeLast(5).mapIndexed { index, points ->
+            Point(index.toDouble(), points.totalPoints.toDouble())
+        }
+
+        val sumX = pointedPoints.sumOf { it.x }
+        val sumY = pointedPoints.sumOf { it.y }
+        val sumXY = pointedPoints.sumOf { it.x * it.y }
+        val sumXSquare = pointedPoints.sumOf { it.x.pow(2) }
+
+        // Calculate the slope of the line of best fit
+        val formTrend = (pointedPoints.size * sumXY - sumX * sumY) / (pointedPoints.size * sumXSquare - sumX.pow(2))
+
+        val homeGames = previousGameweeks.filter { it.wasHome }
+        val awayGames = previousGameweeks.filter { !it.wasHome }
+
+        val homeAvg = homeGames.sumOf { it.totalPoints } / homeGames.size.toDouble()
+        val awayAvg = awayGames.sumOf { it.totalPoints } / awayGames.size.toDouble()
+        val homeAwayDiff = homeAvg - awayAvg
+
+        val seasonConsistencyScore = 1 - ((seasonPointsStdDev / previousGameweeks.map { it.totalPoints }.average()))
+
         return PlayerGameweekFeatures(
             position = currentGameweek.positionId,
             opponentStrength = currentGameweek.opponentTeamStrength,
@@ -39,11 +63,13 @@ class FeatureProcessing {
             last3GamesPointsAvg = previousGameweeks.takeLast(3).map { it.totalPoints }.average(),
             last3GamesOpponentStrengthAvg = previousGameweeks.takeLast(3).map { it.opponentTeamStrength }.average(),
             last5GamesPointsAvg = previousGameweeks.takeLast(5).map { it.totalPoints }.average(),
+            last5GamesPointsExponentialMovingAverage = Statistics.calculateExponentialMovingAverage(previousGameweeks.takeLast(5)),
             last5GamesOpponentStrengthAvg = previousGameweeks.takeLast(5).map { it.opponentTeamStrength }.average(),
             last5GamesCleansSheetsAvg = previousGameweeks.takeLast(5).map { it.cleanSheets }.average(),
             last5GamesGoalsScoredAvg = previousGameweeks.takeLast(5).map { it.goalsScored }.average(),
             last5GamesAssistsAvg = previousGameweeks.takeLast(5).map { it.assists }.average(),
             last5GamesBonusPointsAvg = previousGameweeks.takeLast(5).map { it.bonus }.average(),
+            last5GamesFormTrend = formTrend,
             seasonAvgPointsToDate = averagePointsToDate,
             seasonAvgMinutesPlayed = previousGameweeks.map { it.minutes }.average(),
             seasonPointsStdDev = seasonPointsStdDev,
@@ -52,6 +78,8 @@ class FeatureProcessing {
             seasonAvgAssists = previousGameweeks.map { it.assists }.average(),
             seasonAvgBonusPointsAvg = previousGameweeks.map { it.bonus }.average(),
             isHome = currentGameweek.wasHome,
+            homeAwayPointsDiff = homeAwayDiff,
+            seasonConsistencyScore = seasonConsistencyScore,
             points = currentGameweek.totalPoints.toDouble()
         )
     }

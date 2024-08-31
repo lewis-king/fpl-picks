@@ -92,9 +92,6 @@ class ModelTrainer {
         val totalImportance = importance.sum()
         val normalizedImportance = importance.map { it / totalImportance }
         val featureNames = ModelConfig.featureNames()
-        featureNames.forEachIndexed { index, name ->
-            println("Importance of $name: ${normalizedImportance[index] * 100}%")
-        }
 
         // Save the best model
         val file = File("build/model/model.ser")
@@ -108,6 +105,9 @@ class ModelTrainer {
         metaFile.outputStream().use { outputStream ->
             PrintWriter(outputStream).use { writer ->
                 writer.println(bestModel?.metrics())
+                featureNames.forEachIndexed { index, name ->
+                    println("Importance of $name: ${normalizedImportance[index] * 100}%")
+                }
             }
         }
 

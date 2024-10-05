@@ -42,7 +42,6 @@ class PlayerGameweekDataParser {
         val csvParser = CSVParser.parse(csvContent, csvFormat)
 
         val teamIdToTeam = teams.associateBy { it.id }
-        val teamNameToTeam = teams.associateBy { it.name }
 
         return csvParser.map { record ->
             PlayerGameweekData(

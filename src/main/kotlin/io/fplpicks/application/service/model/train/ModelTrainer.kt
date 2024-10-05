@@ -107,6 +107,7 @@ class ModelTrainer {
                 writer.println(bestModel?.metrics())
                 featureNames.forEachIndexed { index, name ->
                     println("Importance of $name: ${normalizedImportance[index] * 100}%")
+                    writer.println("Importance of $name: ${normalizedImportance[index] * 100}%")
                 }
             }
         }

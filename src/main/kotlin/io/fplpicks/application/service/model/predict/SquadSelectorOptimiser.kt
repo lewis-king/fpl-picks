@@ -1,6 +1,7 @@
 package io.fplpicks.application.service.model.predict
 
 import io.fplpicks.application.model.PlayerPrediction
+import io.fplpicks.application.model.calculateWeightedScore
 import java.io.InputStreamReader
 import kotlin.random.Random
 
@@ -13,54 +14,50 @@ class SquadSelectorOptimiser(
     private val budget: Double = 1000.0,
     private val generations: Int = 100,
     private val expectedLineups: Map<String, String>,
-    private val lookAheadWeeks: Int = 4
+    private val lookAheadWeeks: Int = 3
 ) {
 
 
+    private val MONEY_IN_BANK = 0.0
     private val random = Random.Default
 
     private val maxFreeTransfers: Int = 5
     private val freeTransferValue: Double
 
     init {
-        freeTransferValue = calculateFreeTransferValue()
+        freeTransferValue = 0.0 //calculateFreeTransferValue()
     }
 
     private fun calculateFreeTransferValue(): Double {
         val positionGroups = playerPredictions.groupBy { it.position }
         val avgDifference = positionGroups.map { (_, players) ->
-            val sortedPlayers = players.sortedByDescending { it.pointsTotalUpcomingGWs }
+            val sortedPlayers = players.sortedByDescending { it.calculateWeightedScore() }
             val topPlayersAvg = sortedPlayers.take((players.size * 0.2).toInt()).map { it.pointsTotalUpcomingGWs }.average()
-            val overallAvg = players.map { it.pointsTotalUpcomingGWs }.average()
+            val overallAvg = players.map { it.calculateWeightedScore() }.average()
             topPlayersAvg - overallAvg
         }.average()
 
-        return avgDifference * 0.5 // Adjust this factor as needed
+        return (avgDifference * 0.5) / 2  // Adjust this factor as needed
     }
 
     fun optimizeSquadForGameweek(
         currentSquad: Squad?,
         availableFreeTransfers: Int = 1
-    ): Squad {
+    ): OptimizationResult {
         return if (currentSquad == null) {
             val bestSquad = selectBestSquad()
-            //OptimizationResult(
-            //    squad = bestSquad,
-            //    transferStrategy = TransferStrategy(bestSquad, emptyList()),
-            //    reasoning = "Initial squad selection"
-            //)
-            bestSquad
+            OptimizationResult(
+                squad = bestSquad,
+                transferStrategy = TransferStrategy(bestSquad, emptyList()),
+                reasoning = "Initial squad selection"
+            )
         } else {
             findOptimalTransferStrategy(currentSquad, availableFreeTransfers, lookAheadWeeks)
         }
     }
 
-    private fun optimizeExistingSquad(currentSquad: Squad, availableFreeTransfers: Int): Squad {
-        return findOptimalTransferStrategy(currentSquad, availableFreeTransfers, lookAheadWeeks)
-    }
-
-    private fun findOptimalTransferStrategy(initialSquad: Squad, initialFreeTransfers: Int, weeksToLookAhead: Int): Squad {
-        /*var bestStrategy = TransferStrategy(initialSquad, emptyList())
+    private fun findOptimalTransferStrategy(initialSquad: Squad, initialFreeTransfers: Int, weeksToLookAhead: Int): OptimizationResult {
+        var bestStrategy = TransferStrategy(initialSquad, emptyList())
         var bestScore = calculateMultiWeekScore(bestStrategy, weeksToLookAhead)
         var bestReasoning = "No transfers made"
 
@@ -76,8 +73,8 @@ class SquadSelectorOptimiser(
         }
 
         val optimalSquad = applyTransfers(initialSquad, bestStrategy.transfers.firstOrNull() ?: emptyList())
-        return OptimizationResult(optimalSquad, bestStrategy, bestReasoning)*/
-        return optimizeSquad(initialSquad)
+        val sortedOptimalSquad = optimizeSquad(optimalSquad)
+        return OptimizationResult(sortedOptimalSquad, bestStrategy, bestReasoning)
     }
 
     private fun generateReasoning(strategy: TransferStrategy, weeksToLookAhead: Int): String {
@@ -118,26 +115,26 @@ class SquadSelectorOptimiser(
     }
 
     private fun generateTransfers(squad: Squad, numTransfers: Int): List<Transfer> {
+        val allPlayers = squad.startingPlayers + squad.benchPlayers
+        val playersToTransferOut = allPlayers
+            .filter { expectedLineups[it.commonName] != "STARTING" }
+            .sortedBy { it.calculateWeightedScore() }
+            .take(numTransfers)
+
         val transfers = mutableListOf<Transfer>()
         var currentSquad = squad
+        var remainingBudget = MONEY_IN_BANK + playersToTransferOut.sumOf { it.value }
 
-        repeat(numTransfers) {
-            val allPlayers = currentSquad.startingPlayers + currentSquad.benchPlayers
-
-            // Sort players by their predicted points for the upcoming gameweeks
-            val sortedPlayers = allPlayers.sortedBy { it.pointsTotalUpcomingGWs }
-
-            // Try to transfer out the player with the lowest predicted points
-            val playerOut = sortedPlayers.firstOrNull() ?: return transfers
-            val possibleReplacements = findPossibleReplacements(playerOut, currentSquad)
+        for (playerOut in playersToTransferOut) {
+            val possibleReplacements = findPossibleReplacements(playerOut, currentSquad, remainingBudget)
 
             if (possibleReplacements.isNotEmpty()) {
-                // Choose the replacement with the highest predicted points
-                val playerIn = possibleReplacements.maxByOrNull { it.pointsTotalUpcomingGWs }!!
+                val playerIn = possibleReplacements.first() // Already sorted by weighted score
                 transfers.add(Transfer(playerOut, playerIn))
 
-                // Update the current squad for the next iteration
+                // Update the current squad and remaining budget
                 currentSquad = makeTransfer(currentSquad, playerOut, playerIn)
+                remainingBudget -= playerIn.value
             }
         }
 
@@ -167,15 +164,18 @@ class SquadSelectorOptimiser(
         return squad.weightedTotalPredictedPoints
     }
 
-    private fun findPossibleReplacements(player: PlayerPrediction, squad: Squad): List<PlayerPrediction> {
+    private fun findPossibleReplacements(
+        player: PlayerPrediction,
+        squad: Squad,
+        remainingBudget: Double
+    ): List<PlayerPrediction> {
         return playerPredictions.filter { replacement ->
             replacement.position == player.position &&
                     replacement !in (squad.startingPlayers + squad.benchPlayers) &&
-                    squad.totalCost - player.value + replacement.value <= budget &&
+                    replacement.value <= remainingBudget &&
                     playerBlocklist?.get(replacement.name) == null &&
-                    expectedLineups[replacement.commonName] == "STARTING" &&
-                    replacement.pointsTotalUpcomingGWs > player.pointsTotalUpcomingGWs  // Only consider players with higher predicted points
-        }.sortedByDescending { it.pointsTotalUpcomingGWs }  // Sort by predicted points in descending order
+                    expectedLineups[replacement.commonName] == "STARTING"
+        }.sortedByDescending { it.calculateWeightedScore() }
     }
 
     private fun calculateMultiWeekScore(strategy: TransferStrategy, weeksToLookAhead: Int): Double {
@@ -187,9 +187,18 @@ class SquadSelectorOptimiser(
             val transfers = strategy.transfers.getOrNull(week) ?: emptyList()
             unusedTransfers = minOf(unusedTransfers + 1, 5) - transfers.size
             currentSquad = applyTransfers(currentSquad, transfers)
-
+            currentSquad = optimizeSquad(currentSquad)
             // Use pointsAvgUpcomingGWs as a proxy for the expected points in a given week
-            // TODO: This needs to consider players that are NOT in the expectedLineups or have OUT. This means they will score 0 this gameweek not their predicted points
+            for (player in currentSquad.startingPlayers) {
+                if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED" || expectedLineups[player.commonName] == "QUES") {
+                    player.predictedPointsThisGW = 0.0
+                }
+            }
+            for (player in currentSquad.benchPlayers) {
+                if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED" || expectedLineups[player.commonName] == "QUES") {
+                    player.predictedPointsThisGW = 0.0
+                }
+            }
             totalScore += currentSquad.startingPlayers.sumOf { it.pointsAvgUpcomingGWs } +
                     currentSquad.benchPlayers.sumOf { it.pointsAvgUpcomingGWs * Squad.BENCH_PLAYER_CHANCE_OF_PLAYING * Squad.BENCH_PLAYER_CHANCE_OF_BEING_REQUIRED } +
                     unusedTransfers * freeTransferValue
@@ -203,8 +212,9 @@ class SquadSelectorOptimiser(
             compareBy<PlayerPrediction> { player ->
                 when (expectedLineups[player.commonName]) {
                     "STARTING" -> 0
-                    "QUESTIONABLE" -> 1
+                    "QUES" -> 1
                     "OUT" -> 2
+                    "SUSPENDED" -> 2
                     else -> 3 // For players not in the expectedLineups map
                 }
             }.thenByDescending { it.predictedPointsThisGW })
@@ -308,7 +318,7 @@ class SquadSelectorOptimiser(
             "FWD" to formation.forwards
         ).forEach { (position, count) ->
             val positionPlayers = benchPlayers.filter { it.position == position }
-                .sortedByDescending { it.pointsTotalUpcomingGWs }
+                .sortedByDescending { it.calculateWeightedScore() }
                 .take(count)
             startingPlayers.addAll(positionPlayers)
             benchPlayers.removeAll(positionPlayers)
@@ -330,7 +340,7 @@ class SquadSelectorOptimiser(
         startingPlayers: List<PlayerPrediction>,
         benchPlayers: List<PlayerPrediction>
     ): Double {
-        return startingPlayers.sumOf { it.pointsTotalUpcomingGWs } + benchPlayers.sumOf { Squad.BENCH_PLAYER_CHANCE_OF_PLAYING * it.pointsTotalUpcomingGWs * Squad.BENCH_PLAYER_CHANCE_OF_BEING_REQUIRED * Squad.DISCOUNT_FACTOR }
+        return startingPlayers.sumOf { it.calculateWeightedScore() } + benchPlayers.sumOf { Squad.BENCH_PLAYER_CHANCE_OF_PLAYING * it.calculateWeightedScore() * Squad.BENCH_PLAYER_CHANCE_OF_BEING_REQUIRED * Squad.DISCOUNT_FACTOR }
     }
 
     private fun evolvePopulation(population: List<Squad>): List<Squad> {

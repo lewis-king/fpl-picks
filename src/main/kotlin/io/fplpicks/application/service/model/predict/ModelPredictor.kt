@@ -80,13 +80,19 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
                 playerGameweekFeaturesList.add(PlayerGameweekFeatures(
                     position = it.elementType,
                     opponentStrength = playersNextOpponent!!,
+                    opponentDifficulty = form[key]?.last()?.opponentTeamStrength!! * 2,
+                    homeVsOpponent = if (form[key]?.last()?.wasHome!!) form[key]?.last()?.opponentTeamStrength!! * 2.0 else form[key]?.last()?.opponentTeamStrength!!.toDouble(),
                     lastGamePoints = form[key]?.last()?.totalPoints ?: 0,
+                    lastGameXP = form[key]?.last()?.xP ?: 0.0,
                     lastOpponentStrength = form[key]?.last()?.opponentTeamStrength ?: 0,
-                    last2GamesPointsAvg = form[key]?.takeLast(2)?.map { it.totalPoints }?.average() ?: 0.0,
+                    //last2GamesPointsAvg = form[key]?.takeLast(2)?.map { it.totalPoints }?.average() ?: 0.0,
                     last3GamesPointsAvg = form[key]?.takeLast(3)?.map { it.totalPoints }?.average() ?: 0.0,
+                    last3GamesXPAvg = form[key]?.takeLast(3)?.map { it.xP }?.average() ?: 0.0,
                     last3GamesOpponentStrengthAvg = form[key]?.takeLast(3)?.map { it.opponentTeamStrength }?.average() ?: 0.0,
                     last5GamesPointsAvg = form[key]?.takeLast(5)?.map { it.totalPoints }?.average() ?: 0.0,
+                    last5GamesXPAvg = form[key]?.takeLast(5)?.map { it.xP }?.average() ?: 0.0,
                     last5GamesPointsExponentialMovingAverage = Statistics.calculateExponentialMovingAverage(form[key]?.takeLast(5)),
+                    last5GamesXPExponentialMovingAverage = Statistics.calculateExponentialMovingAverage(form[key]?.takeLast(5)),
                     last5GamesOpponentStrengthAvg = form[key]?.takeLast(5)?.map { it.opponentTeamStrength }?.average() ?: 0.0,
                     last5GamesCleansSheetsAvg = form[key]?.takeLast(5)?.map { it.cleanSheets }?.average() ?: 0.0,
                     last5GamesGoalsScoredAvg = form[key]?.takeLast(5)?.map { it.goalsScored }?.average() ?: 0.0,
@@ -94,10 +100,11 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
                     last5GamesBonusPointsAvg = form[key]?.takeLast(5)?.map { it.assists }?.average() ?: 0.0,
                     last5GamesFormTrend = formTrend,
                     seasonAvgPointsToDate = form[key]?.map { it.totalPoints }?.average() ?: 0.0,
+                    seasonAvgXPToDate = form[key]?.map { it.xP }?.average() ?: 0.0,
                     seasonAvgMinutesPlayed = form[key]?.map { it.minutes }?.average() ?: 0.0,
-                    seasonAvgCleanSheets = form[key]?.map { it.cleanSheets }?.average() ?: 0.0,
-                    seasonAvgGoalsScored = form[key]?.map { it.goalsScored }?.average() ?: 0.0,
-                    seasonAvgAssists = form[key]?.map { it.assists }?.average() ?: 0.0,
+                    //seasonAvgCleanSheets = form[key]?.map { it.cleanSheets }?.average() ?: 0.0,
+                    //seasonAvgGoalsScored = form[key]?.map { it.goalsScored }?.average() ?: 0.0,
+                    //seasonAvgAssists = form[key]?.map { it.assists }?.average() ?: 0.0,
                     seasonAvgBonusPointsAvg = form[key]?.map { it.assists }?.average() ?: 0.0,
                     seasonPointsStdDev = seasonPointsStdDev,
                     isHome = playerIsHome ?: false,
@@ -170,14 +177,24 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
         val currentSquadStartingPlayersNewPredictions = currentSquad?.startingPlayers?.map { playerToPredictionMap[it.name]!! } ?: emptyList()
         val currentSquadBenchPlayersNewPredictions = currentSquad?.benchPlayers?.map { playerToPredictionMap[it.name]!! } ?: emptyList()
         val currentSquadNewPredictions = currentSquad?.copy(startingPlayers = currentSquadStartingPlayersNewPredictions, benchPlayers = currentSquadBenchPlayersNewPredictions)
+        for (player in currentSquadNewPredictions!!.startingPlayers) {
+            if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED") {
+                player.predictedPointsThisGW = 0.0
+            }
+        }
+        for (player in currentSquadNewPredictions!!.benchPlayers) {
+            if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED") {
+                player.predictedPointsThisGW = 0.0
+            }
+        }
 
-        val optimumSquad = SquadSelectorOptimiser(playerPredictions = playerToPrediction, expectedLineups = expectedLineups).optimizeSquadForGameweek(currentSquad = currentSquadNewPredictions)
+        val optimumSquad = SquadSelectorOptimiser(playerPredictions = playerToPrediction, expectedLineups = expectedLineups).optimizeSquadForGameweek(currentSquad = currentSquadNewPredictions, availableFreeTransfers = 2)
         println(optimumSquad)
 
         val timestamp = Clock.System.now()
         val gameweek = "2024-$nextEventKey"
         // store squad
-        teamOfTheWeekPredictionStore.store(gameweek, optimumSquad, timestamp)
+        //teamOfTheWeekPredictionStore.store(gameweek, optimumSquad.squad, timestamp)
     }
 }
 

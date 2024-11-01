@@ -33,7 +33,7 @@ dependencies {
     implementation("org.apache.commons:commons-csv:1.11.0")
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("com.github.haifengl:smile-core:3.1.1")
-    implementation("aws.sdk.kotlin:dynamodb:1.3.3")
+    implementation("aws.sdk.kotlin:dynamodb-jvm:1.3.46")
     implementation("org.jsoup:jsoup:1.18.1")
 
     testImplementation("io.ktor:ktor-server-tests-jvm")

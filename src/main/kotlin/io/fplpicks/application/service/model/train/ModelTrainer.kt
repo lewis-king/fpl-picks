@@ -49,9 +49,9 @@ class ModelTrainer {
         val formula = Formula.lhs("points")
 
         // Define hyperparameters to tune
-        val numTreesOptions = listOf(100, 200, 500)
-        val maxDepthOptions = listOf(10, 20, 30)
-        val maxNodesOptions = listOf(256, 512, 1024)
+        val numTreesOptions = listOf(100, 200)
+        val maxDepthOptions = listOf(10, 20)
+        val maxNodesOptions = listOf(256, 512)
 
         var bestModel: RandomForest? = null
         var bestRMSE = Double.MAX_VALUE

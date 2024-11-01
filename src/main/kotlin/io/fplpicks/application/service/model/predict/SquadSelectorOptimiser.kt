@@ -18,10 +18,8 @@ class SquadSelectorOptimiser(
 ) {
 
 
-    private val MONEY_IN_BANK = 0.0
     private val random = Random.Default
 
-    private val maxFreeTransfers: Int = 5
     private val freeTransferValue: Double
 
     init {
@@ -42,7 +40,8 @@ class SquadSelectorOptimiser(
 
     fun optimizeSquadForGameweek(
         currentSquad: Squad?,
-        availableFreeTransfers: Int = 1
+        availableFreeTransfers: Int = 3,
+        moneyInBank: Double
     ): OptimizationResult {
         return if (currentSquad == null) {
             val bestSquad = selectBestSquad()
@@ -52,17 +51,24 @@ class SquadSelectorOptimiser(
                 reasoning = "Initial squad selection"
             )
         } else {
-            findOptimalTransferStrategy(currentSquad, availableFreeTransfers, lookAheadWeeks)
+            findOptimalTransferStrategy(currentSquad, availableFreeTransfers, lookAheadWeeks, moneyInBank)
         }
     }
 
-    private fun findOptimalTransferStrategy(initialSquad: Squad, initialFreeTransfers: Int, weeksToLookAhead: Int): OptimizationResult {
+    private fun findOptimalTransferStrategy(
+        initialSquad: Squad,
+        initialFreeTransfers: Int,
+        weeksToLookAhead: Int,
+        moneyInBank: Double
+    ): OptimizationResult {
         var bestStrategy = TransferStrategy(initialSquad, emptyList())
         var bestScore = calculateMultiWeekScore(bestStrategy, weeksToLookAhead)
         var bestReasoning = "No transfers made"
 
-        val possibleStrategies = generatePossibleStrategies(initialSquad, initialFreeTransfers, weeksToLookAhead)
+        // Generate various combinations of transfer strategies
+        val possibleStrategies = generatePossibleStrategies(initialSquad, initialFreeTransfers, weeksToLookAhead, moneyInBank)
 
+        // Explore each strategy and score it
         for (strategy in possibleStrategies) {
             val score = calculateMultiWeekScore(strategy, weeksToLookAhead)
             if (score > bestScore) {
@@ -91,54 +97,116 @@ class SquadSelectorOptimiser(
                 ". This strategy maximizes expected points over the next $weeksToLookAhead weeks."
     }
 
-    private fun generatePossibleStrategies(initialSquad: Squad, initialFreeTransfers: Int, weeksToLookAhead: Int): List<TransferStrategy> {
+    private fun generatePossibleStrategies(
+        initialSquad: Squad,
+        initialFreeTransfers: Int,
+        weeksToLookAhead: Int,
+        moneyInBank: Double
+    ): List<TransferStrategy> {
         val strategies = mutableListOf<TransferStrategy>()
 
-        fun generateStrategiesRecursive(currentWeek: Int, accumulatedTransfers: Int, currentStrategy: List<List<Transfer>>) {
+        // We will now try out different combinations of players to transfer out
+        fun generateStrategiesRecursive(
+            currentWeek: Int,
+            accumulatedTransfers: Int,
+            currentStrategy: List<List<Transfer>>,
+            moneyInBank: Double
+        ) {
             if (currentWeek == weeksToLookAhead) {
                 strategies.add(TransferStrategy(initialSquad, currentStrategy))
                 return
             }
 
-            val maxTransfersThisWeek = minOf(accumulatedTransfers, 5)
+            // Try combinations of players for the given number of transfers
+            val maxTransfersThisWeek = minOf(accumulatedTransfers, initialFreeTransfers)
+            val possibleTransferCombinations = generateTransferCombinations(initialSquad, maxTransfersThisWeek, moneyInBank)
 
-            for (numTransfers in 0..maxTransfersThisWeek) {
-                val transfers = generateTransfers(initialSquad, numTransfers)
-                val newAccumulatedTransfers = if (numTransfers == 0) minOf(accumulatedTransfers + 1, 5) else 1
-                generateStrategiesRecursive(currentWeek + 1, newAccumulatedTransfers, currentStrategy + listOf(transfers))
+            for (transfers in possibleTransferCombinations) {
+                val newAccumulatedTransfers = if (transfers.isEmpty()) minOf(accumulatedTransfers + 1, initialFreeTransfers) else 1
+                generateStrategiesRecursive(currentWeek + 1, newAccumulatedTransfers, currentStrategy + listOf(transfers), moneyInBank)
             }
         }
 
-        generateStrategiesRecursive(0, initialFreeTransfers, emptyList())
-
+        generateStrategiesRecursive(0, initialFreeTransfers, emptyList(), moneyInBank)
         return strategies
     }
 
-    private fun generateTransfers(squad: Squad, numTransfers: Int): List<Transfer> {
+    private fun generateTransferCombinations(squad: Squad, maxTransfers: Int, moneyInBank: Double): List<List<Transfer>> {
         val allPlayers = squad.startingPlayers + squad.benchPlayers
-        val playersToTransferOut = allPlayers
-            .filter { expectedLineups[it.commonName] != "STARTING" }
-            .sortedBy { it.calculateWeightedScore() }
-            .take(numTransfers)
 
-        val transfers = mutableListOf<Transfer>()
-        var currentSquad = squad
-        var remainingBudget = MONEY_IN_BANK + playersToTransferOut.sumOf { it.value }
+        // We'll create combinations of up to `maxTransfers` players to transfer out
+        val playerCombinations = allPlayers.combinations(maxTransfers)
 
-        for (playerOut in playersToTransferOut) {
-            val possibleReplacements = findPossibleReplacements(playerOut, currentSquad, remainingBudget)
+        val transferCombinations = mutableListOf<List<Transfer>>()
 
-            if (possibleReplacements.isNotEmpty()) {
-                val playerIn = possibleReplacements.first() // Already sorted by weighted score
-                transfers.add(Transfer(playerOut, playerIn))
+        for (playerOutCombination in playerCombinations) {
+            val transfers = mutableListOf<Transfer>()
 
-                // Update the current squad and remaining budget
-                currentSquad = makeTransfer(currentSquad, playerOut, playerIn)
-                remainingBudget -= playerIn.value
+            // Calculate the combined budget after selling all the players in this combination
+            val totalPlayerOutValue = playerOutCombination.sumOf { it.value }
+            val remainingBudget = moneyInBank + totalPlayerOutValue
+
+            // Find the best combination of players to bring in
+            val replacementPlayers = findReplacementCombination(playerOutCombination, squad, remainingBudget)
+
+            if (replacementPlayers.isNotEmpty()) {
+                // If valid replacement combination found, record the transfers
+                for (i in playerOutCombination.indices) {
+                    val playerOut = playerOutCombination[i]
+                    val playerIn = replacementPlayers[i]
+                    transfers.add(Transfer(playerOut, playerIn))
+                }
+                transferCombinations.add(transfers)
             }
         }
 
-        return transfers
+        return transferCombinations
+    }
+
+    /**
+     * This function finds a combination of replacement players that can fit within the budget.
+     */
+    private fun findReplacementCombination(
+        playerOutCombination: List<PlayerPrediction>,
+        currentSquad: Squad,
+        remainingBudget: Double
+    ): List<PlayerPrediction> {
+        val replacementPlayers = mutableListOf<PlayerPrediction>()
+        var updatedSquad = currentSquad
+        var runningRemainingBudget = remainingBudget
+        for (playerOut in playerOutCombination) {
+            // Find possible replacements for each player in the combination
+            val possibleReplacements = findPossibleReplacements(playerOut, updatedSquad, runningRemainingBudget)
+
+            if (possibleReplacements.isNotEmpty()) {
+                val playerIn = possibleReplacements.first()  // Best replacement for this player
+                replacementPlayers.add(playerIn)
+
+                // Update the squad and remaining budget after each replacement
+                updatedSquad = makeTransfer(updatedSquad, playerOut, playerIn)
+                runningRemainingBudget -= playerIn.value
+
+                // Check if we still have enough budget after each replacement
+                if (remainingBudget < 0) return emptyList()  // Invalid combination if over budget
+            } else {
+                return emptyList()  // No valid replacement for this player, so discard this combination
+            }
+        }
+
+        return replacementPlayers
+    }
+
+    /**
+     * Extension function to generate combinations of a list up to a given size.
+     */
+    private fun <T> List<T>.combinations(size: Int): List<List<T>> {
+        return when {
+            size <= 0 -> listOf(emptyList())
+            this.isEmpty() -> emptyList()
+            else -> this.flatMapIndexed { index, element ->
+                this.subList(index + 1, this.size).combinations(size - 1).map { listOf(element) + it }
+            }
+        }
     }
 
     private fun applyTransfers(squad: Squad, transfers: List<Transfer>): Squad {

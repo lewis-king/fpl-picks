@@ -28,7 +28,7 @@ class FeatureProcessing {
                               currentGameweek: PlayerGameweekData,
                               futureGameweeks: List<PlayerGameweekData>): PlayerGameweekFeatures {
 
-        val points = previousGameweeks.takeLast(10).map { it.totalPoints }
+        val points = previousGameweeks.map { it.totalPoints }
         val averagePointsToDate = points.average()
         val variance = points.map { (it - averagePointsToDate) * (it - averagePointsToDate) }.average()
         val seasonPointsStdDev = sqrt(variance)
@@ -45,14 +45,14 @@ class FeatureProcessing {
         // Calculate the slope of the line of best fit
         val formTrend = (pointedPoints.size * sumXY - sumX * sumY) / (pointedPoints.size * sumXSquare - sumX.pow(2))
 
-        val homeGames = previousGameweeks.takeLast(10).filter { it.wasHome }
-        val awayGames = previousGameweeks.takeLast(10).filter { !it.wasHome }
+        val homeGames = previousGameweeks.filter { it.wasHome }
+        val awayGames = previousGameweeks.filter { !it.wasHome }
 
         val homeAvg = homeGames.sumOf { it.totalPoints } / homeGames.size.toDouble()
         val awayAvg = awayGames.sumOf { it.totalPoints } / awayGames.size.toDouble()
         val homeAwayDiff = homeAvg - awayAvg
 
-        val seasonConsistencyScore = 1 - ((seasonPointsStdDev / previousGameweeks.takeLast(10).map { it.totalPoints }.average()))
+        val seasonConsistencyScore = 1 - ((seasonPointsStdDev / previousGameweeks.map { it.totalPoints }.average()))
 
         return PlayerGameweekFeatures(
             position = currentGameweek.positionId,
@@ -77,13 +77,13 @@ class FeatureProcessing {
             last5GamesBonusPointsAvg = previousGameweeks.takeLast(5).map { it.bonus }.average(),
             last5GamesFormTrend = formTrend,
             seasonAvgPointsToDate = averagePointsToDate,
-            seasonAvgXPToDate = previousGameweeks.takeLast(10).map { it.xP }.average(),
-            seasonAvgMinutesPlayed = previousGameweeks.takeLast(10).map { it.minutes }.average(),
+            seasonAvgXPToDate = previousGameweeks.map { it.xP }.average(),
+            seasonAvgMinutesPlayed = previousGameweeks.map { it.minutes }.average(),
             seasonPointsStdDev = seasonPointsStdDev,
-            //seasonAvgCleanSheets = previousGameweeks.takeLast(10).map { it.cleanSheets }.average(),
-            //seasonAvgGoalsScored = previousGameweeks.takeLast(10).map { it.goalsScored }.average(),
-            //seasonAvgAssists = previousGameweeks.takeLast(10).map { it.assists }.average(),
-            seasonAvgBonusPointsAvg = previousGameweeks.takeLast(10).map { it.bonus }.average(),
+            //seasonAvgCleanSheets = previousGameweeks.map { it.cleanSheets }.average(),
+            //seasonAvgGoalsScored = previousGameweeks.map { it.goalsScored }.average(),
+            //seasonAvgAssists = previousGameweeks.map { it.assists }.average(),
+            seasonAvgBonusPointsAvg = previousGameweeks.map { it.bonus }.average(),
             isHome = currentGameweek.wasHome,
             homeAwayPointsDiff = homeAwayDiff,
             seasonConsistencyScore = seasonConsistencyScore,

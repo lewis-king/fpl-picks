@@ -38,6 +38,7 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
         val playersWithEnoughHistoricData = fplData.players.filter { form["${it.firstName} ${it.secondName}"] != null }
 
         val features = playersWithEnoughHistoricData.map {
+            val seasonScope = 7
             val key = "${it.firstName} ${it.secondName}"
             val playersTeam = currentTeams[it.team]
             val playerGameweekFeaturesList = mutableListOf<PlayerGameweekFeatures>()
@@ -48,7 +49,7 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
                 val playersNextOpponent = TeamStrength.teamToStrength[playersNextOpponentName]
                 val playerIsHome = fixtureInfo[gw]?.any { it.teamH == playersTeam?.id }
 
-                val points = form[key]?.map { it.totalPoints } ?: emptyList()
+                val points = form[key]?.takeLast(seasonScope)?.map { it.totalPoints } ?: emptyList()
                 val averagePointsToDate = points.average()
                 val variance = points.map { (it - averagePointsToDate) * (it - averagePointsToDate) }.average()
                 val seasonPointsStdDev = sqrt(variance)
@@ -65,8 +66,8 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
                 // Calculate the slope of the line of best fit
                 val formTrend = (pointedPoints.size * sumXY - sumX * sumY) / (pointedPoints.size * sumXSquare - sumX.pow(2))
 
-                val homeGames = form[key]?.filter { it.wasHome } ?: emptyList()
-                val awayGames = form[key]?.filter { !it.wasHome } ?: emptyList()
+                val homeGames = form[key]?.takeLast(seasonScope)?.filter { it.wasHome } ?: emptyList()
+                val awayGames = form[key]?.takeLast(seasonScope)?.filter { !it.wasHome } ?: emptyList()
 
                 val homeAvg = homeGames.sumOf { it.totalPoints } / homeGames.size.toDouble()
                 val awayAvg = awayGames.sumOf { it.totalPoints } / awayGames.size.toDouble()
@@ -80,7 +81,7 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
                 playerGameweekFeaturesList.add(PlayerGameweekFeatures(
                     position = it.elementType,
                     opponentStrength = playersNextOpponent!!,
-                    opponentDifficulty = form[key]?.last()?.opponentTeamStrength!! * 2,
+                    opponentDifficulty = playersNextOpponent * 2,
                     homeVsOpponent = if (form[key]?.last()?.wasHome!!) form[key]?.last()?.opponentTeamStrength!! * 2.0 else form[key]?.last()?.opponentTeamStrength!!.toDouble(),
                     lastGamePoints = form[key]?.last()?.totalPoints ?: 0,
                     lastGameXP = form[key]?.last()?.xP ?: 0.0,
@@ -99,13 +100,13 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
                     last5GamesAssistsAvg = form[key]?.takeLast(5)?.map { it.assists }?.average() ?: 0.0,
                     last5GamesBonusPointsAvg = form[key]?.takeLast(5)?.map { it.assists }?.average() ?: 0.0,
                     last5GamesFormTrend = formTrend,
-                    seasonAvgPointsToDate = form[key]?.map { it.totalPoints }?.average() ?: 0.0,
-                    seasonAvgXPToDate = form[key]?.map { it.xP }?.average() ?: 0.0,
-                    seasonAvgMinutesPlayed = form[key]?.map { it.minutes }?.average() ?: 0.0,
+                    seasonAvgPointsToDate = form[key]?.takeLast(seasonScope)?.map { it.totalPoints }?.average() ?: 0.0,
+                    seasonAvgXPToDate = form[key]?.takeLast(seasonScope)?.map { it.xP }?.average() ?: 0.0,
+                    seasonAvgMinutesPlayed = form[key]?.takeLast(seasonScope)?.map { it.minutes }?.average() ?: 0.0,
                     //seasonAvgCleanSheets = form[key]?.map { it.cleanSheets }?.average() ?: 0.0,
                     //seasonAvgGoalsScored = form[key]?.map { it.goalsScored }?.average() ?: 0.0,
                     //seasonAvgAssists = form[key]?.map { it.assists }?.average() ?: 0.0,
-                    seasonAvgBonusPointsAvg = form[key]?.map { it.assists }?.average() ?: 0.0,
+                    seasonAvgBonusPointsAvg = form[key]?.takeLast(seasonScope)?.map { it.assists }?.average() ?: 0.0,
                     seasonPointsStdDev = seasonPointsStdDev,
                     isHome = playerIsHome ?: false,
                     homeAwayPointsDiff = homeAwayDiff,
@@ -180,21 +181,25 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
         for (player in currentSquadNewPredictions!!.startingPlayers) {
             if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED") {
                 player.predictedPointsThisGW = 0.0
+            } else if (expectedLineups[player.commonName] == "QUESTIONABLE") {
+                player.predictedPointsThisGW = player.predictedPointsThisGW * 0.75
             }
         }
         for (player in currentSquadNewPredictions!!.benchPlayers) {
             if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED") {
                 player.predictedPointsThisGW = 0.0
+            } else if (expectedLineups[player.commonName] == "QUESTIONABLE") {
+                player.predictedPointsThisGW = player.predictedPointsThisGW * 0.75
             }
         }
 
-        val optimumSquad = SquadSelectorOptimiser(playerPredictions = playerToPrediction, expectedLineups = expectedLineups).optimizeSquadForGameweek(currentSquad = currentSquadNewPredictions, availableFreeTransfers = 2)
+        val optimumSquad = SquadSelectorOptimiser(playerPredictions = playerToPrediction, expectedLineups = expectedLineups).optimizeSquadForGameweek(currentSquad = currentSquadNewPredictions, availableFreeTransfers = 2, moneyInBank = 19.0)
         println(optimumSquad)
 
         val timestamp = Clock.System.now()
         val gameweek = "2024-$nextEventKey"
         // store squad
-        //teamOfTheWeekPredictionStore.store(gameweek, optimumSquad.squad, timestamp)
+        teamOfTheWeekPredictionStore.store(gameweek, optimumSquad.squad, timestamp)
     }
 }
 

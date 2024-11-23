@@ -61,12 +61,13 @@ class SquadSelectorOptimiser(
         weeksToLookAhead: Int,
         moneyInBank: Double
     ): OptimizationResult {
-        var bestStrategy = TransferStrategy(initialSquad, emptyList())
+        val optimisedInitialSquad = optimizeSquad(initialSquad)
+        var bestStrategy = TransferStrategy(optimisedInitialSquad, emptyList())
         var bestScore = calculateMultiWeekScore(bestStrategy, weeksToLookAhead)
         var bestReasoning = "No transfers made"
 
         // Generate various combinations of transfer strategies
-        val possibleStrategies = generatePossibleStrategies(initialSquad, initialFreeTransfers, weeksToLookAhead, moneyInBank)
+        val possibleStrategies = generatePossibleStrategies(optimisedInitialSquad, initialFreeTransfers, weeksToLookAhead, moneyInBank)
 
         // Explore each strategy and score it
         for (strategy in possibleStrategies) {
@@ -78,7 +79,7 @@ class SquadSelectorOptimiser(
             }
         }
 
-        val optimalSquad = applyTransfers(initialSquad, bestStrategy.transfers.firstOrNull() ?: emptyList())
+        val optimalSquad = applyTransfers(optimisedInitialSquad, bestStrategy.transfers.firstOrNull() ?: emptyList())
         val sortedOptimalSquad = optimizeSquad(optimalSquad)
         return OptimizationResult(sortedOptimalSquad, bestStrategy, bestReasoning)
     }
@@ -258,12 +259,12 @@ class SquadSelectorOptimiser(
             currentSquad = optimizeSquad(currentSquad)
             // Use pointsAvgUpcomingGWs as a proxy for the expected points in a given week
             for (player in currentSquad.startingPlayers) {
-                if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED" || expectedLineups[player.commonName] == "QUES") {
+                if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED") {
                     player.predictedPointsThisGW = 0.0
                 }
             }
             for (player in currentSquad.benchPlayers) {
-                if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED" || expectedLineups[player.commonName] == "QUES") {
+                if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED") {
                     player.predictedPointsThisGW = 0.0
                 }
             }
@@ -280,7 +281,7 @@ class SquadSelectorOptimiser(
             compareBy<PlayerPrediction> { player ->
                 when (expectedLineups[player.commonName]) {
                     "STARTING" -> 0
-                    "QUES" -> 1
+                    "QUESTIONABLE" -> 0
                     "OUT" -> 2
                     "SUSPENDED" -> 2
                     else -> 3 // For players not in the expectedLineups map

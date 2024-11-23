@@ -33,7 +33,7 @@ dependencies {
     implementation("org.apache.commons:commons-csv:1.11.0")
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("com.github.haifengl:smile-core:3.1.1")
-    implementation("aws.sdk.kotlin:dynamodb-jvm:1.3.46")
+    implementation("aws.sdk.kotlin:dynamodb-jvm:1.3.70") // weird we have to keep updating this as it randomly breaks. Must be some non versioned transitive dependencies?
     implementation("org.jsoup:jsoup:1.18.1")
 
     testImplementation("io.ktor:ktor-server-tests-jvm")

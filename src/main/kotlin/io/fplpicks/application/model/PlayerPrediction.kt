@@ -8,13 +8,13 @@ data class PlayerPrediction(
     val team: String,
     val value: Double,
     var predictedPointsThisGW: Double,
-    val predictedPointsGWPlus1: Double,
-    val predictedPointsGWPlus2: Double,
-    val predictedPointsGWPlus3: Double,
-    val predictedPointsGWPlus4: Double,
+    var predictedPointsGWPlus1: Double,
+    var predictedPointsGWPlus2: Double,
+    var predictedPointsGWPlus3: Double,
+    var predictedPointsGWPlus4: Double,
     val pointsPerValue: Double,
-    val pointsTotalUpcomingGWs: Double,
-    val pointsAvgUpcomingGWs: Double
+    var pointsTotalUpcomingGWs: Double,
+    var pointsAvgUpcomingGWs: Double
 )
 
 fun PlayerPrediction.calculateWeightedScore(): Double {

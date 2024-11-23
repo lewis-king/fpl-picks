@@ -181,19 +181,37 @@ class ModelPredictor(val fetchFPLData: FetchRawCurrentFPLData, val teamOfTheWeek
         for (player in currentSquadNewPredictions!!.startingPlayers) {
             if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED") {
                 player.predictedPointsThisGW = 0.0
+                player.predictedPointsGWPlus1 = player.predictedPointsGWPlus1 * 0.5
+                player.predictedPointsGWPlus2 = player.predictedPointsGWPlus1 * 0.65
+                player.predictedPointsGWPlus3 = player.predictedPointsGWPlus1 * 0.8
+
             } else if (expectedLineups[player.commonName] == "QUESTIONABLE") {
                 player.predictedPointsThisGW = player.predictedPointsThisGW * 0.75
+                player.predictedPointsGWPlus1 = player.predictedPointsGWPlus1 * 0.5
+                player.predictedPointsGWPlus2 = player.predictedPointsGWPlus1 * 0.65
+                player.predictedPointsGWPlus3 = player.predictedPointsGWPlus1 * 0.8
             }
         }
         for (player in currentSquadNewPredictions!!.benchPlayers) {
             if (expectedLineups[player.commonName] == "OUT" || expectedLineups[player.commonName] == "SUSPENDED") {
                 player.predictedPointsThisGW = 0.0
+                player.predictedPointsGWPlus1 = player.predictedPointsGWPlus1 * 0.5
+                player.predictedPointsGWPlus2 = player.predictedPointsGWPlus1 * 0.65
+                player.predictedPointsGWPlus3 = player.predictedPointsGWPlus1 * 0.8
+                //TODO: Make these computed on the data class rather than mutable
+                player.pointsTotalUpcomingGWs = player.predictedPointsThisGW + player.predictedPointsGWPlus1 + player.predictedPointsGWPlus2 + player.predictedPointsGWPlus3 + player.predictedPointsGWPlus4
+                player.pointsAvgUpcomingGWs = player.pointsTotalUpcomingGWs / 5.0
             } else if (expectedLineups[player.commonName] == "QUESTIONABLE") {
                 player.predictedPointsThisGW = player.predictedPointsThisGW * 0.75
+                player.predictedPointsGWPlus1 = player.predictedPointsGWPlus1 * 0.5
+                player.predictedPointsGWPlus2 = player.predictedPointsGWPlus1 * 0.65
+                player.predictedPointsGWPlus3 = player.predictedPointsGWPlus1 * 0.8
+                player.pointsTotalUpcomingGWs = player.predictedPointsThisGW + player.predictedPointsGWPlus1 + player.predictedPointsGWPlus2 + player.predictedPointsGWPlus3 + player.predictedPointsGWPlus4
+                player.pointsAvgUpcomingGWs = player.pointsTotalUpcomingGWs / 5.0
             }
         }
 
-        val optimumSquad = SquadSelectorOptimiser(playerPredictions = playerToPrediction, expectedLineups = expectedLineups).optimizeSquadForGameweek(currentSquad = currentSquadNewPredictions, availableFreeTransfers = 2, moneyInBank = 19.0)
+        val optimumSquad = SquadSelectorOptimiser(playerPredictions = playerToPrediction, expectedLineups = expectedLineups).optimizeSquadForGameweek(currentSquad = currentSquadNewPredictions, availableFreeTransfers = 0, moneyInBank = 25.0)
         println(optimumSquad)
 
         val timestamp = Clock.System.now()
